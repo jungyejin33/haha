@@ -1,52 +1,35 @@
+import streamlit as st
+
 product_db = {
-    "P001": {
-        "name": "นมสด",
-        "lot": "L20260601",
-        "temp": "4°C",
-        "expiry": "2026-06-10",
-        "price": 45,
-        "nutrition": "โปรตีน 8g, แคลเซียมสูง"
-    }
+    "P001": {"name": "นมเปรี้ยว", "price": 20, "exp": "10-06-2026", "info": "โปรตีน 5g"},
 }
 
-def scan_and_login():
-    # 1. แสกนหรือใส่รหัสสินค้าก่อน
-    qr_code = input("สแกน 2D Barcode: ")
-    product_id = qr_code[:4]
-    
-    if product_id not in product_db:
-        print("ไม่พบสินค้าในระบบ")
-        return
+# ดึงรหัสสินค้า
+product_id = st.query_params.get("id", "P001")
+item = product_db.get(product_id)
 
-    item = product_db[product_id]
+st.title(f"สินค้า: {item['name']}")
 
-    # 2. ให้เลือกว่าใครเป็นคนใช้งาน
-    print("\nกรุณาเลือกบทบาทผู้ใช้งาน:")
-    print("1. ลูกค้า")
-    print("2. พนักงานคลัง")
-    print("3. พนักงานแคชเชียร์")
-    
-    choice = input("เลือกหมายเลข (1-3): ")
-    
-    print("\n--- ผลการแสดงผล ---")
-    if choice == "1":
-        print(f"สินค้า: {item['name']}")
-        print(f"คุณค่าทางโภชนาการ: {item['nutrition']}")
-        
-    elif choice == "2":
-        print(f"เข้าสู่ระบบสำหรับพนักงานคลังสำเร็จ")
-        print(f"สินค้า: {item['name']}")
-        print(f"เลขล็อต: {item['lot']}")
-        print(f"อุณหภูมิ: {item['temp']}")
-        
-    elif choice == "3":
-        print(f"เข้าสู่ระบบสำหรับพนักงานแคชเชียร์สำเร็จ")
-        print(f"สินค้า: {item['name']}")
-        print(f"ราคา: {item['price']} บาท")
-        print(f"วันหมดอายุ: {item['expiry']}")
-        
-    else:
-        print("ตัวเลือกไม่ถูกต้อง")
+# ระบบสลับสถานะ
+if "mode" not in st.session_state:
+    st.session_state.mode = "customer"
 
-# รันระบบ
-scan_and_login()
+# เมนูเปลี่ยนโหมด (ซ่อนไว้หรือวางไว้ล่างสุด)
+mode_select = st.sidebar.radio("สถานะการใช้งาน:", ["ลูกค้า", "พนักงาน"])
+if mode_select == "พนักงาน" and "auth" not in st.session_state:
+    pwd = st.sidebar.text_input("รหัสพนักงาน:", type="password")
+    if st.sidebar.button("ยืนยัน"):
+        if pwd == "1234":
+            st.session_state.auth = True
+            st.session_state.mode = "staff"
+            st.rerun()
+else:
+    st.session_state.mode = "customer"
+
+# แสดงผลตามสถานะ
+if st.session_state.mode == "staff" and st.session_state.get("auth"):
+    st.success("โหมดพนักงาน: จัดการสต๊อก / คำนวณราคา")
+    st.write(f"ราคา: {item['price']} บาท | วันหมดอายุ: {item['exp']}")
+else:
+    st.write(f"ราคา: {item['price']} บาท")
+    st.write(f"รายละเอียด: {item['info']}")
